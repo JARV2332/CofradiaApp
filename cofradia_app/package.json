@@ -1,0 +1,8 @@
+{
+  "name": "cofradia-app-web",
+  "private": true,
+  "description": "Solo para que Vercel ejecute el build; la app es Flutter.",
+  "scripts": {
+    "build": "bash scripts/vercel-build.sh"
+  }
+}

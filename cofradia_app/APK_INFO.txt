@@ -1,0 +1,56 @@
+﻿ APK DE COFRADÍA GENERADA EXITOSAMENTE
+==========================================
+
+ Archivo: app-release.apk
+ Tamaño: 24.3 MB
+ Fecha: 2025-10-23 10:54:41
+ Ubicación: build\app\outputs\flutter-apk\
+
+ FUNCIONALIDADES INCLUIDAS:
+============================
+
+ TEMA DE COFRADÍA COMPLETO
+   - Colores oficiales: Azul (#1565C0), Amarillo (#FFD700), Rojo (#D32F2F), Blanco
+   - Gradientes y diseño visual coherente
+   - Material Design 3 integrado
+   - AppBar con gradiente de cofradía
+
+ SISTEMA QR MEJORADO
+   - QR codes con datos estructurados en JSON
+   - Información completa del cofrade (nombre, apellidos, categoría, etc.)
+   - Fechas de validación y códigos de verificación
+   - Compatible con escaneo móvil
+   - Botón de escáner QR en AppBar principal
+
+ GESTIÓN DE COFRADES
+   - Lista completa de cofrades
+   - Búsqueda por nombre
+   - Crear, editar y eliminar cofrades
+   - Generación de carnets PDF individuales
+   - Generación masiva de carnets
+
+ CARNETS PDF PROFESIONALES
+   - Diseño con colores de cofradía
+   - Código QR integrado con datos del cofrade
+   - Información completa (nombre, sección, división, fecha alta)
+   - Se abre automáticamente en nueva pestaña
+
+ NAVEGACIÓN MEJORADA
+   - BottomNavigationBar con iconos temáticos
+   - Pantallas: Asistencias, Eventos, Cofrades, Usuarios
+   - Tema visual consistente en toda la aplicación
+
+ TÉCNICO:
+==========
+- Flutter SDK: Actualizado
+- API Service: Datos de prueba incluidos
+- Configuración: Optimizada para móviles
+- Build: Release optimizado
+
+ INSTRUCCIONES DE INSTALACIÓN:
+================================
+1. Transfiere el archivo app-release.apk a tu dispositivo Android
+2. En tu teléfono, ve a Configuración > Seguridad > Instalar apps desconocidas
+3. Habilita la instalación desde fuentes desconocidas
+4. Abre el archivo APK y sigue las instrucciones de instalación
+

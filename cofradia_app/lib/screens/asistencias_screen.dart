@@ -1,0 +1,317 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../models/asistencia.dart';
+import '../models/evento.dart';
+import '../models/cofrade.dart';
+import '../services/api_service.dart';
+
+class AsistenciasScreen extends StatefulWidget {
+  const AsistenciasScreen({super.key});
+
+  @override
+  State<AsistenciasScreen> createState() => _AsistenciasScreenState();
+}
+
+class _AsistenciasScreenState extends State<AsistenciasScreen> {
+  final ApiService _apiService = ApiService();
+  bool _isLoading = true;
+  List<Asistencia> _asistencias = [];
+  List<Evento> _eventos = [];
+  List<Cofrade> _cofrades = [];
+  List<Asistencia> _filteredAsistencias = [];
+  final _searchController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  
+  Evento? _selectedEvento;
+  Cofrade? _selectedCofrade;
+  String? _selectedEstado;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() => _isLoading = true);
+      final asistencias = await _apiService.getAsistencias();
+      final eventos = await _apiService.getEventos();
+      final cofrades = await _apiService.getCofrades();
+      setState(() {
+        _asistencias = asistencias;
+        _eventos = eventos;
+        _cofrades = cofrades;
+        _filteredAsistencias = _asistencias;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar los datos: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showAsistenciaDialog([Asistencia? asistencia]) async {
+    _selectedEvento = asistencia?.evento;
+    _selectedCofrade = asistencia?.cofrade;
+
+    _selectedEstado = asistencia?.estado ?? 'PENDIENTE';
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(asistencia == null ? 'Nueva Asistencia' : 'Editar Asistencia'),
+        content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<Evento>(
+                  value: _selectedEvento,
+                  decoration: const InputDecoration(labelText: 'Evento'),
+                  items: _eventos.map((evento) {
+                    return DropdownMenuItem(
+                      value: evento,
+                      child: Text(evento.nombre),
+                    );
+                  }).toList(),
+                  onChanged: (evento) {
+                    setState(() {
+                      _selectedEvento = evento;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) return 'Por favor seleccione un evento';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<Cofrade>(
+                  value: _selectedCofrade,
+                  decoration: const InputDecoration(labelText: 'Cofrade'),
+                  items: _cofrades.map((cofrade) {
+                    return DropdownMenuItem(
+                      value: cofrade,
+                      child: Text('${cofrade.nombre} ${cofrade.apellidos}'),
+                    );
+                  }).toList(),
+                  onChanged: (cofrade) {
+                    setState(() {
+                      _selectedCofrade = cofrade;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) return 'Por favor seleccione un cofrade';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedEstado,
+                  decoration: const InputDecoration(labelText: 'Estado'),
+                  items: const [
+                    DropdownMenuItem(value: 'PENDIENTE', child: Text('Pendiente')),
+                    DropdownMenuItem(value: 'CONFIRMADA', child: Text('Confirmada')),
+                    DropdownMenuItem(value: 'RECHAZADA', child: Text('Rechazada')),
+                  ],
+                  onChanged: (estado) {
+                    setState(() {
+                      _selectedEstado = estado;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) return 'Por favor seleccione un estado';
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                final asistenciaNueva = Asistencia(
+                  id: asistencia?.id ?? '',
+                  evento: _selectedEvento!,
+                  cofrade: _selectedCofrade!,
+                  estado: _selectedEstado!,
+                );
+
+                try {
+                  if (asistencia == null) {
+                    await _apiService.createAsistencia(asistenciaNueva);
+                  } else {
+                    await _apiService.updateAsistencia(asistencia.id!, asistenciaNueva);
+                  }
+                  await _loadData();
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            child: Text(asistencia == null ? 'Crear' : 'Actualizar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAsistencia(Asistencia asistencia) async {
+    try {
+      await _apiService.deleteAsistencia(asistencia.id!);
+      await _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Asistencia eliminada correctamente')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al eliminar la asistencia: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDelete(Asistencia asistencia) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: const Text('¿Está seguro de que desea eliminar esta asistencia?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _deleteAsistencia(asistencia);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Asistencias'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                labelText: 'Buscar',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _filteredAsistencias = _asistencias.where((asistencia) {
+                    final searchLower = value.toLowerCase();
+                    return asistencia.evento.nombre.toLowerCase().contains(searchLower) ||
+                           asistencia.cofrade.nombre.toLowerCase().contains(searchLower) ||
+                           asistencia.cofrade.apellidos.toLowerCase().contains(searchLower) ||
+                           asistencia.estado.toLowerCase().contains(searchLower);
+                  }).toList();
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _filteredAsistencias.length,
+              itemBuilder: (context, index) {
+                final asistencia = _filteredAsistencias[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.deepPurple,
+                      child: Text(asistencia.evento.nombre[0].toUpperCase()),
+                    ),
+                    title: Text(asistencia.evento.nombre),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Cofrade: ${asistencia.cofrade.nombre} ${asistencia.cofrade.apellidos}'),
+                        Text('Evento: ${asistencia.evento.nombre} (${asistencia.evento.fecha} ${asistencia.evento.hora})'),
+                        Text('Estado: ${asistencia.estado}'),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _showAsistenciaDialog(asistencia),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _confirmDelete(asistencia),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAsistenciaDialog(),
+        backgroundColor: Colors.deepPurple,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
