@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:html' as html show DivElement, ScriptElement, document, window;
 import 'dart:js' as js;
@@ -438,6 +439,103 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     );
   }
 
+  static const double _webWideBreakpoint = 900;
+  static const double _webMaxContentWidth = 1180;
+
+  /// Panel morado: evento + estado (web).
+  Widget _buildWebInstructionsCard({required double iconSize}) {
+    return Material(
+      color: Colors.deepPurple.shade50,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      elevation: 1,
+      shadowColor: Colors.deepPurple.withOpacity(0.2),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              Icons.qr_code_scanner,
+              size: iconSize,
+              color: Colors.deepPurple,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Apunta la cámara hacia el código QR',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            if (_eventosActivos.isNotEmpty)
+              DropdownButton<String>(
+                value: _selectedEventoId,
+                isExpanded: true,
+                items: _eventosActivos
+                    .map(
+                      (e) => DropdownMenuItem<String>(
+                        value: e.id,
+                        child: Text(
+                          '${e.nombre} (${e.fecha} ${e.hora})',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedEventoId = value;
+                    _isScanning = _selectedEventoId != null;
+                    _scannedCode = null;
+                    _carnetId = null;
+                    _cofradeData = null;
+                  });
+                },
+              )
+            else
+              const Text(
+                'No hay eventos activos. Crea un evento primero.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.redAccent,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 10),
+            Text(
+              _selectedEventoId == null
+                  ? 'Selecciona un evento para habilitar el escaneo'
+                  : (_isScanning ? 'Escaneando...' : 'Listo'),
+              style: TextStyle(
+                fontSize: 14,
+                color: _isScanning ? Colors.orange : Colors.green,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebScannerView({required double width, required double height}) {
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      shadowColor: Colors.black26,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: HtmlElementView(viewType: _viewId),
+      ),
+    );
+  }
+
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -475,102 +573,107 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       body: kIsWeb
           ? LayoutBuilder(
               builder: (context, constraints) {
-                final maxWidth = constraints.maxWidth.isFinite
+                final w = constraints.maxWidth.isFinite
                     ? constraints.maxWidth
                     : 1000.0;
-                final headerMaxWidth = maxWidth < 900 ? maxWidth : 980.0;
-                final scannerMaxWidth = maxWidth < 900 ? maxWidth : 600.0;
-                final scannerHeight =
-                    (constraints.maxHeight * 0.62).clamp(280.0, 650.0);
+                final h = constraints.maxHeight.isFinite
+                    ? constraints.maxHeight
+                    : 800.0;
+                final wide = w >= _webWideBreakpoint;
 
-                return Column(
-                  children: [
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: headerMaxWidth),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          color: Colors.deepPurple.shade50,
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.qr_code_scanner,
-                                size: (maxWidth * 0.06).clamp(36.0, 54.0),
-                                color: Colors.deepPurple,
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Apunta la cámara hacia el código QR',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-
-                              if (_eventosActivos.isNotEmpty)
-                                DropdownButton<String>(
-                                  value: _selectedEventoId,
-                                  isExpanded: true,
-                                  items: _eventosActivos
-                                      .map(
-                                        (e) => DropdownMenuItem<String>(
-                                          value: e.id,
-                                          child: Text(
-                                            '${e.nombre} (${e.fecha} ${e.hora})',
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                if (wide) {
+                  final rowHeight = (h - 24).clamp(440.0, 700.0);
+                  return ColoredBox(
+                    color: Colors.grey.shade100,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: _webMaxContentWidth,
+                          ),
+                          child: SizedBox(
+                            height: rowHeight,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  flex: 42,
+                                  child: Center(
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 400,
+                                      ),
+                                      child: SingleChildScrollView(
+                                        child: _buildWebInstructionsCard(
+                                          iconSize: 48,
                                         ),
-                                      )
-                                      .toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedEventoId = value;
-                                      _isScanning = _selectedEventoId != null;
-                                      _scannedCode = null;
-                                      _carnetId = null;
-                                      _cofradeData = null;
-                                    });
-                                  },
-                                )
-                              else
-                                const Text(
-                                  'No hay eventos activos. Crea un evento primero.',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.redAccent,
+                                      ),
+                                    ),
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
-
-                              const SizedBox(height: 8),
-                              Text(
-                                _selectedEventoId == null
-                                    ? 'Selecciona un evento para habilitar el escaneo'
-                                    : (_isScanning ? 'Escaneando...' : 'Listo'),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: _isScanning ? Colors.orange : Colors.green,
+                                const SizedBox(width: 24),
+                                Expanded(
+                                  flex: 58,
+                                  child: LayoutBuilder(
+                                    builder: (context, inner) {
+                                      final side = math.min(
+                                            inner.maxWidth,
+                                            inner.maxHeight,
+                                          ) *
+                                          0.94;
+                                      final s = side.clamp(300.0, 580.0);
+                                      return Center(
+                                        child: _buildWebScannerView(
+                                          width: s,
+                                          height: s,
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
+                  );
+                }
 
-                    // Scanner
-                    Expanded(
-                      child: Center(
-                        child: SizedBox(
-                          width: scannerMaxWidth,
-                          height: scannerHeight,
-                          child: HtmlElementView(viewType: _viewId),
+                // Móvil / ventana estrecha: columna centrada y ancho contenido
+                final colW = math.min(w - 32, 520.0);
+                final camH = (h * 0.48).clamp(260.0, 440.0);
+
+                return ColoredBox(
+                  color: Colors.grey.shade50,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: colW),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildWebInstructionsCard(
+                              iconSize: (w * 0.09).clamp(36.0, 48.0),
+                            ),
+                            const SizedBox(height: 16),
+                            Center(
+                              child: _buildWebScannerView(
+                                width: colW,
+                                height: camH,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 );
               },
             )
