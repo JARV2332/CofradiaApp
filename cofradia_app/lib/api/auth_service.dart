@@ -27,7 +27,14 @@ class AuthService {
     await _client.auth.signOut();
   }
 
+  /// Incluye intento de refresco por si la sesión aún no está en memoria (p. ej. web al arrancar).
   Future<bool> isLoggedIn() async {
-    return _client.auth.currentSession != null;
+    if (_client.auth.currentSession != null) return true;
+    try {
+      final res = await _client.auth.refreshSession();
+      return res.session != null;
+    } catch (_) {
+      return false;
+    }
   }
 }

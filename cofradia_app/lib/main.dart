@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'screens/main_screen.dart'; // Cambiar a MainScreen para testing directo
 import 'theme/cofradia_theme.dart'; // Importar tema personalizado
@@ -26,19 +28,35 @@ class _MyAppState extends State<MyApp> {
   final AuthService _authService = AuthService();
   bool _checking = true;
   bool _loggedIn = false;
+  StreamSubscription<AuthState>? _authSub;
 
   @override
   void initState() {
     super.initState();
     _bootstrapAuth();
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final inSession = data.session != null;
+      if (inSession != _loggedIn && mounted) {
+        setState(() => _loggedIn = inSession);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _bootstrapAuth() async {
-    _loggedIn = await _authService.isLoggedIn();
+    try {
+      await Future<void>.delayed(Duration.zero);
+      _loggedIn = await _authService.isLoggedIn();
+    } catch (_) {
+      _loggedIn = false;
+    }
     if (mounted) {
-      setState(() {
-        _checking = false;
-      });
+      setState(() => _checking = false);
     }
   }
 
