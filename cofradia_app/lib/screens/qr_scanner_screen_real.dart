@@ -440,9 +440,84 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   static const double _webWideBreakpoint = 900;
-  static const double _webMaxContentWidth = 1180;
+  static const double _webMaxContentWidth = 1040;
+  /// Tamaño máximo del vídeo QR en escritorio (evita cámara desproporcionada).
+  static const double _webScannerMaxSideDesktop = 360;
+  /// Ancho máximo del bloque único en móvil/tablet web.
+  static const double _webNarrowContentMaxW = 400;
+  /// Alto máximo del área de cámara en layout estrecho.
+  static const double _webScannerMaxHeightNarrow = 300;
 
-  /// Panel morado: evento + estado (web).
+  Widget _webInstructionsContent({required double iconSize}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Icon(
+          Icons.qr_code_scanner,
+          size: iconSize,
+          color: Colors.deepPurple,
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Apunta la cámara hacia el código QR',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        if (_eventosActivos.isNotEmpty)
+          DropdownButton<String>(
+            value: _selectedEventoId,
+            isExpanded: true,
+            items: _eventosActivos
+                .map(
+                  (e) => DropdownMenuItem<String>(
+                    value: e.id,
+                    child: Text(
+                      '${e.nombre} (${e.fecha} ${e.hora})',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedEventoId = value;
+                _isScanning = _selectedEventoId != null;
+                _scannedCode = null;
+                _carnetId = null;
+                _cofradeData = null;
+              });
+            },
+          )
+        else
+          const Text(
+            'No hay eventos activos. Crea un evento primero.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.redAccent,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        const SizedBox(height: 10),
+        Text(
+          _selectedEventoId == null
+              ? 'Selecciona un evento para habilitar el escaneo'
+              : (_isScanning ? 'Escaneando...' : 'Listo'),
+          style: TextStyle(
+            fontSize: 14,
+            color: _isScanning ? Colors.orange : Colors.green,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  /// Panel morado suelto (solo layout ancho en dos columnas).
   Widget _buildWebInstructionsCard({required double iconSize}) {
     return Material(
       color: Colors.deepPurple.shade50,
@@ -452,81 +527,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       shadowColor: Colors.deepPurple.withOpacity(0.2),
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(
-              Icons.qr_code_scanner,
-              size: iconSize,
-              color: Colors.deepPurple,
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Apunta la cámara hacia el código QR',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            if (_eventosActivos.isNotEmpty)
-              DropdownButton<String>(
-                value: _selectedEventoId,
-                isExpanded: true,
-                items: _eventosActivos
-                    .map(
-                      (e) => DropdownMenuItem<String>(
-                        value: e.id,
-                        child: Text(
-                          '${e.nombre} (${e.fecha} ${e.hora})',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedEventoId = value;
-                    _isScanning = _selectedEventoId != null;
-                    _scannedCode = null;
-                    _carnetId = null;
-                    _cofradeData = null;
-                  });
-                },
-              )
-            else
-              const Text(
-                'No hay eventos activos. Crea un evento primero.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.redAccent,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            const SizedBox(height: 10),
-            Text(
-              _selectedEventoId == null
-                  ? 'Selecciona un evento para habilitar el escaneo'
-                  : (_isScanning ? 'Escaneando...' : 'Listo'),
-              style: TextStyle(
-                fontSize: 14,
-                color: _isScanning ? Colors.orange : Colors.green,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+        child: _webInstructionsContent(iconSize: iconSize),
       ),
     );
   }
 
   Widget _buildWebScannerView({required double width, required double height}) {
     return Material(
-      elevation: 4,
-      borderRadius: BorderRadius.circular(16),
+      elevation: 2,
+      borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
+      color: Colors.black,
       shadowColor: Colors.black26,
       child: SizedBox(
         width: width,
@@ -582,60 +593,75 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 final wide = w >= _webWideBreakpoint;
 
                 if (wide) {
-                  final rowHeight = (h - 24).clamp(440.0, 700.0);
+                  final rowHeight = (h - 32).clamp(420.0, 640.0);
                   return ColoredBox(
                     color: Colors.grey.shade100,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 12,
+                        vertical: 16,
                       ),
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(
                             maxWidth: _webMaxContentWidth,
                           ),
-                          child: SizedBox(
-                            height: rowHeight,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  flex: 42,
-                                  child: Center(
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 400,
-                                      ),
-                                      child: SingleChildScrollView(
-                                        child: _buildWebInstructionsCard(
-                                          iconSize: 48,
+                          child: Material(
+                            elevation: 2,
+                            borderRadius: BorderRadius.circular(20),
+                            clipBehavior: Clip.antiAlias,
+                            color: Colors.white,
+                            child: SizedBox(
+                              height: rowHeight,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: Center(
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 380,
+                                        ),
+                                        child: SingleChildScrollView(
+                                          padding: const EdgeInsets.all(20),
+                                          child: _buildWebInstructionsCard(
+                                            iconSize: 44,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 24),
-                                Expanded(
-                                  flex: 58,
-                                  child: LayoutBuilder(
-                                    builder: (context, inner) {
-                                      final side = math.min(
-                                            inner.maxWidth,
-                                            inner.maxHeight,
-                                          ) *
-                                          0.94;
-                                      final s = side.clamp(300.0, 580.0);
-                                      return Center(
-                                        child: _buildWebScannerView(
-                                          width: s,
-                                          height: s,
-                                        ),
-                                      );
-                                    },
+                                  Container(
+                                    width: 1,
+                                    color: Colors.grey.shade300,
                                   ),
-                                ),
-                              ],
+                                  Expanded(
+                                    child: LayoutBuilder(
+                                      builder: (context, inner) {
+                                        final maxByBox = math.min(
+                                          inner.maxWidth - 24,
+                                          inner.maxHeight - 24,
+                                        );
+                                        final s = math
+                                            .min(
+                                              maxByBox,
+                                              _webScannerMaxSideDesktop,
+                                            )
+                                            .clamp(240.0, _webScannerMaxSideDesktop);
+                                        return Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16),
+                                            child: _buildWebScannerView(
+                                              width: s,
+                                              height: s,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -644,32 +670,51 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                   );
                 }
 
-                // Móvil / ventana estrecha: columna centrada y ancho contenido
-                final colW = math.min(w - 32, 520.0);
-                final camH = (h * 0.48).clamp(260.0, 440.0);
+                // Móvil / ventana estrecha: una sola tarjeta; cámara limitada
+                final contentW = math.min(w - 32, _webNarrowContentMaxW);
+                final camW = contentW - 24;
+                final camH = math.min(
+                  camW * 0.82,
+                  _webScannerMaxHeightNarrow,
+                ).clamp(200.0, _webScannerMaxHeightNarrow);
 
                 return ColoredBox(
-                  color: Colors.grey.shade50,
+                  color: Colors.grey.shade100,
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: colW),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildWebInstructionsCard(
-                              iconSize: (w * 0.09).clamp(36.0, 48.0),
-                            ),
-                            const SizedBox(height: 16),
-                            Center(
-                              child: _buildWebScannerView(
-                                width: colW,
-                                height: camH,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                      child: Material(
+                        elevation: 3,
+                        borderRadius: BorderRadius.circular(20),
+                        clipBehavior: Clip.antiAlias,
+                        color: Colors.white,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: contentW),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                color: Colors.deepPurple.shade50,
+                                padding: const EdgeInsets.all(18),
+                                child: _webInstructionsContent(
+                                  iconSize: (w * 0.08).clamp(36.0, 44.0),
+                                ),
                               ),
-                            ),
-                          ],
+                              Divider(height: 1, color: Colors.grey.shade300),
+                              const SizedBox(height: 20),
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 20),
+                                child: Center(
+                                  child: _buildWebScannerView(
+                                    width: camW,
+                                    height: camH,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
