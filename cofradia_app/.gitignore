@@ -48,3 +48,4 @@ app.*.map.json
 
 # APK generados en la raíz del proyecto Flutter
 /*.apk
+.vercel

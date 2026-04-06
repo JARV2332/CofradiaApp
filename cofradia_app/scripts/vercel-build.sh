@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Compila Flutter Web en Vercel (Linux). La primera vez clona el SDK (tarda varios minutos).
+# Compila Flutter Web en Vercel (Linux). Fin de linea LF (.gitattributes).
+# La primera vez clona el SDK (tarda varios minutos).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
