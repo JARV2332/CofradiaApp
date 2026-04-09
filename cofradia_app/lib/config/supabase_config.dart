@@ -3,12 +3,13 @@ class SupabaseConfig {
   /// para no depender solo de los valores por defecto del código.
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://iypgmitowoyjlumxogwv.supabase.co',
+    defaultValue: 'https://wtngrplmuehuabbdvtjb.supabase.co',
   );
 
   static const String supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'sb_publishable_2A8WZaOaGbYBND4AfD2bng_oloHkDRA',
+    defaultValue:
+        'sb_publishable_rL9ACkl0b1MCpIJaHPXthw__E0z_Cm9',
   );
 }
 
