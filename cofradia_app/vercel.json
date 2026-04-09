@@ -4,6 +4,10 @@
   "buildCommand": "sed -i 's/\\r$//' scripts/vercel-build.sh && bash scripts/vercel-build.sh",
   "outputDirectory": "build/web",
   "framework": null,
+  "env": {
+    "SUPABASE_URL": "https://wtngrplmuehuabbdvtjb.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_rL9ACkl0b1MCpIJaHPXthw__E0z_Cm9"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
