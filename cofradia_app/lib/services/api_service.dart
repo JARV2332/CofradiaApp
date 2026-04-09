@@ -358,10 +358,13 @@ class ApiService {
       }
     }
 
+    // En web, algunas redes bloquean PATCH; upsert usa POST y suele evitar "Failed to fetch".
+    final row = Map<String, dynamic>.from(cofrade.toJson());
+    row['id'] = id;
+
     final response = await _supabase
         .from('cofrades')
-        .update(cofrade.toJson())
-        .eq('id', id)
+        .upsert(row, onConflict: 'id')
         .select('*')
         .maybeSingle();
 
