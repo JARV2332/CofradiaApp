@@ -20,16 +20,15 @@ flutter precache --web
 flutter doctor
 flutter pub get
 
-# Opcional en Vercel: Environment Variables SUPABASE_URL y SUPABASE_ANON_KEY
+# Proyecto Supabase activo (forzado: si en Vercel quedaron env del proyecto viejo,
+# borra SUPABASE_URL / SUPABASE_ANON_KEY en Settings → Environment Variables)
+export SUPABASE_URL="https://wtngrplmuehuabbdvtjb.supabase.co"
+export SUPABASE_ANON_KEY="sb_publishable_rL9ACkl0b1MCpIJaHPXthw__E0z_Cm9"
+echo ">>> Supabase URL (build): ${SUPABASE_URL}"
+
 build_args=(build web --release)
-if [[ -n "${SUPABASE_URL:-}" ]]; then
-  build_args+=(--dart-define="SUPABASE_URL=${SUPABASE_URL}")
-  echo ">>> SUPABASE_URL definida (build)"
-fi
-if [[ -n "${SUPABASE_ANON_KEY:-}" ]]; then
-  build_args+=(--dart-define="SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}")
-  echo ">>> SUPABASE_ANON_KEY definida (build)"
-fi
+build_args+=(--dart-define="SUPABASE_URL=${SUPABASE_URL}")
+build_args+=(--dart-define="SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}")
 
 flutter "${build_args[@]}"
 
